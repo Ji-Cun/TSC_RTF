@@ -7,6 +7,8 @@ from src.DataIO import loadDataFromTsv
 from src.Representation import transform
 from src.Segment import getSeriesFeatures
 from src.classifiers.CNN import CNN
+from src.classifiers.AlternativeCNN import CNNLessLayer, CNNMoreLayer, CNNMoreConv
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import random
@@ -15,7 +17,6 @@ import random
 def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
     x_train_origin, y_train_origin, x_test_origin, y_test_origin = loadDataFromTsv(dataset)
 
-    begin = datetime.datetime.now()
     # generate intuitive temporal features
     features = []
     # 最大长度为100或者时间序列长度、最小长度设为5，期望的分段数为长度除以10和5之间的较大值
@@ -57,8 +58,6 @@ def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
         feature = randomFeatures[index[0]]
         featuresSelected.append(feature)
     # print('feature number', len(featuresSelected))
-    end = datetime.datetime.now()
-    featureSelectionTime = (end - begin).total_seconds()
 
     x_test_selected = transform(featuresSelected, x_test_origin)
     x_train_mean = x_train_selected.mean()
@@ -79,32 +78,56 @@ def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
     cnn = CNN(x_train.shape[1:], nb_classes)
     acc_cnn = cnn.fit(x_train, x_test, Y_train, Y_test)
     end = datetime.datetime.now()
-    trainTime = (end - begin).total_seconds()
+    time_cnn = (end - begin).total_seconds()
+
     keras.backend.clear_session()
 
-    return acc_cnn, featureSelectionTime, trainTime
+    begin = datetime.datetime.now()
+    cnnLL = CNNLessLayer(x_train.shape[1:], nb_classes)
+    acc_cnnLL = cnnLL.fit(x_train, x_test, Y_train, Y_test)
+    end = datetime.datetime.now()
+    time_cnnLL = (end - begin).total_seconds()
+
+    keras.backend.clear_session()
+
+    begin = datetime.datetime.now()
+    cnnML = CNNMoreLayer(x_train.shape[1:], nb_classes)
+    acc_cnnML = cnnML.fit(x_train, x_test, Y_train, Y_test)
+    end = datetime.datetime.now()
+    time_cnnML = (end - begin).total_seconds()
+
+    keras.backend.clear_session()
+
+    begin = datetime.datetime.now()
+    cnnMC = CNNMoreConv(x_train.shape[1:], nb_classes)
+    acc_cnnMC = cnnMC.fit(x_train, x_test, Y_train, Y_test)
+    end = datetime.datetime.now()
+    time_cnnMC = (end - begin).total_seconds()
+    keras.backend.clear_session()
+
+    return acc_cnn, time_cnn, acc_cnnLL, time_cnnLL, acc_cnnML, time_cnnML, acc_cnnMC, time_cnnMC
 
 
 if __name__ == '__main__':
 
     Datasets = ['Adiac', 'FaceAll', 'Symbols']
 
-    df = pd.DataFrame(columns=['dataset', 'itr', 'feature number', 'acc_cnn', 'featureSelectionTime', 'trainTime'],
-                      dtype=object)
+    df = pd.DataFrame(
+        columns=['dataset', 'itr', 'acc_cnn', 'acc_cnnLL', 'acc_cnnML', 'acc_cnnMC', 'time_cnn', 'time_cnnLL',
+                 'time_cnnML', 'time_cnnMC'], dtype=object)
     for dataset in Datasets:
         for itr in range(5):
-            for featureNumber in [64, 128, 256, 512, 1024,2048]:
-
-                print('========================================================')
-                print('dataset', dataset)
-                print('itr', itr)
-                print('feature number', featureNumber)
-                print('time', datetime.datetime.now())
-                acc_cnn, featureSelectionTime, trainTime = featureNumTest(dataset=dataset, feature_number=featureNumber)
-                df = df.append({'dataset': dataset, 'itr': itr, 'feature number': featureNumber, 'acc_cnn': acc_cnn,
-                                'featureSelectionTime': featureSelectionTime, 'trainTime': trainTime},
-                               ignore_index=True)
-                resultFileName = "..\\result\\FeatureNumTestTemp.csv"
-                df.to_csv(resultFileName)
-    resultFileName = "..\\result\\FeatureNumTest.csv"
+            print('========================================================')
+            print('dataset', dataset)
+            print('itr', itr)
+            print('time', datetime.datetime.now())
+            acc_cnn, time_cnn, acc_cnnLL, time_cnnLL, acc_cnnML, time_cnnML, acc_cnnMC, time_cnnMC = featureNumTest(
+                dataset=dataset)
+            df = df.append(
+                {'dataset': dataset, 'itr': itr, 'acc_cnn': acc_cnn, 'acc_cnnLL': acc_cnnLL, 'acc_cnnML': acc_cnnML,
+                 'acc_cnnMC': acc_cnnMC, 'time_cnn': time_cnn, 'time_cnnLL': time_cnnLL, 'time_cnnML': time_cnnML,
+                 'time_cnnMC': time_cnnMC}, ignore_index=True)
+            resultFileName = "..\\result\\ClassifierTestTemp.csv"
+            df.to_csv(resultFileName)
+    resultFileName = "..\\result\\ClassifierTest.csv"
     df.to_csv(resultFileName)

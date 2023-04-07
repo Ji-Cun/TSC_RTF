@@ -6,6 +6,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ReduceLROnPlateau
 from src.classifiers.TimeHistory import TimeHistory
 
+
 class CNN:
     def __init__(self, input_shape, nb_classes):
         self.model = self.build_model(input_shape, nb_classes)
@@ -33,13 +34,13 @@ class CNN:
 
         return model
 
-    def fit(self, x_train, x_test, Y_train, Y_test,nb_epochs=2000):
+    def fit(self, x_train, x_test, Y_train, Y_test, nb_epochs=2000):
         batch_size = int(min(x_train.shape[0] / 10, 16))
 
         es = EarlyStopping(monitor='loss', min_delta=0.0001, patience=50)
         rp = ReduceLROnPlateau(monitor='loss', factor=0.1, patience=50, min_lr=0.0001)
         hist = self.model.fit(x_train, Y_train, batch_size=batch_size, epochs=nb_epochs,
-                              verbose=0, validation_data=(x_test, Y_test), callbacks=[es,rp])
+                              verbose=0, validation_data=(x_test, Y_test), callbacks=[es, rp])
         # Print the testing results which has the lowest training loss.
         # log = pd.DataFrame(hist.history)
         # print(log.loc[log['loss'].idxmin]['loss'], log.loc[log['loss'].idxmin]['val_accuracy'])
@@ -47,9 +48,7 @@ class CNN:
         acc = log.iloc[-1]['val_accuracy']
         return acc
 
-
-    def predict(self,x_test):
-        y_pred=self.model.predict(x_test, verbose=0)
+    def predict(self, x_test):
+        y_pred = self.model.predict(x_test, verbose=0)
         y_pred = np.argmax(y_pred, axis=1)
         return y_pred
-

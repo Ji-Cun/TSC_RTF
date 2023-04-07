@@ -7,12 +7,14 @@ from src.DataIO import loadDataFromTsv
 from src.Representation import transform
 from src.Segment import getSeriesFeatures
 from src.classifiers.CNN import CNN
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+
 import random
 
 
-def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
+def constantTest(dataset='Beef', feature_number=512, random_rate=5):
     x_train_origin, y_train_origin, x_test_origin, y_test_origin = loadDataFromTsv(dataset)
 
     begin = datetime.datetime.now()
@@ -41,22 +43,27 @@ def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
     # 基于随机元素变换
     x_train_trans = transform(randomFeatures, x_train_origin)
 
-    classifier = RandomForestClassifier(n_estimators=200, random_state=0, n_jobs=-1)
-    classifier.fit(x_train_trans, y_train_origin)
-    importances = classifier.feature_importances_
-    indices = np.argsort(importances)[::-1]
-    threshold = 0
-    if (len(importances) > feature_number):
-        threshold = importances[indices[feature_number - 1]]
-    if threshold == 0:
-        threshold = min(importance for importance in importances if importance > 0)
-    x_train_selected = x_train_trans[:, importances >= threshold]
-    selectedIndex = np.argwhere(importances >= threshold)
-    featuresSelected = []
-    for index in selectedIndex:
-        feature = randomFeatures[index[0]]
-        featuresSelected.append(feature)
-    # print('feature number', len(featuresSelected))
+    if c > 1:
+        classifier = RandomForestClassifier(n_estimators=200, random_state=0, n_jobs=-1)
+        classifier.fit(x_train_trans, y_train_origin)
+        importances = classifier.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        threshold = 0
+        if (len(importances) > feature_number):
+            threshold = importances[indices[feature_number - 1]]
+        if threshold == 0:
+            threshold = min(importance for importance in importances if importance > 0)
+        x_train_selected = x_train_trans[:, importances >= threshold]
+        selectedIndex = np.argwhere(importances >= threshold)
+        featuresSelected = []
+        for index in selectedIndex:
+            feature = randomFeatures[index[0]]
+            featuresSelected.append(feature)
+        # print('feature number', len(featuresSelected))
+    else:
+        x_train_selected = x_train_trans.copy()
+        featuresSelected = randomFeatures.copy()
+
     end = datetime.datetime.now()
     featureSelectionTime = (end - begin).total_seconds()
 
@@ -88,23 +95,24 @@ def featureNumTest(dataset='Beef', feature_number=512, random_rate=5):
 if __name__ == '__main__':
 
     Datasets = ['Adiac', 'FaceAll', 'Symbols']
+    Datasets = ['Adiac', 'FaceAll', 'Symbols']
 
-    df = pd.DataFrame(columns=['dataset', 'itr', 'feature number', 'acc_cnn', 'featureSelectionTime', 'trainTime'],
-                      dtype=object)
-    for dataset in Datasets:
-        for itr in range(5):
-            for featureNumber in [64, 128, 256, 512, 1024,2048]:
-
+    df = pd.DataFrame(columns=['dataset', 'itr', 'c', 'acc_cnn', 'featureSelectionTime', 'trainTime'], dtype=object)
+    featureNumber = 512
+    for itr in range(5):
+        for dataset in Datasets:
+            for c in [1, 3, 7, 9]:
                 print('========================================================')
                 print('dataset', dataset)
                 print('itr', itr)
-                print('feature number', featureNumber)
+                print('c', c)
                 print('time', datetime.datetime.now())
-                acc_cnn, featureSelectionTime, trainTime = featureNumTest(dataset=dataset, feature_number=featureNumber)
-                df = df.append({'dataset': dataset, 'itr': itr, 'feature number': featureNumber, 'acc_cnn': acc_cnn,
+                acc_cnn, featureSelectionTime, trainTime = constantTest(dataset=dataset, feature_number=featureNumber,
+                                                                        random_rate=c)
+                df = df.append({'dataset': dataset, 'itr': itr, 'c': c, 'acc_cnn': acc_cnn,
                                 'featureSelectionTime': featureSelectionTime, 'trainTime': trainTime},
                                ignore_index=True)
-                resultFileName = "..\\result\\FeatureNumTestTemp.csv"
+                resultFileName = "..\\result\\ConstantTestTemp.csv"
                 df.to_csv(resultFileName)
-    resultFileName = "..\\result\\FeatureNumTest.csv"
+    resultFileName = "..\\result\\ConstantTest.csv"
     df.to_csv(resultFileName)

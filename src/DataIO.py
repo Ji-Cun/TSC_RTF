@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
-file_path='F:\\time series data\\UCRArchive_2018\\'
+
+file_path = 'F:\\time series data\\UCRArchive_2018\\'
+
 
 def loadDataFromTsv(dataset):
-    train_path=file_path+dataset+'\\'+dataset+'_TRAIN.tsv'
-    test_path=file_path+dataset+'\\'+dataset+'_TEST.tsv'
+    train_path = file_path + dataset + '\\' + dataset + '_TRAIN.tsv'
+    test_path = file_path + dataset + '\\' + dataset + '_TEST.tsv'
 
     df_train = pd.read_csv(train_path, sep='\t', header=None)
     df_test = pd.read_csv(test_path, sep='\t', header=None)
@@ -31,4 +33,4 @@ def loadDataFromTsv(dataset):
     std_[std_ == 0] = 1.0
     x_test = (x_test - x_test.mean(axis=1, keepdims=True)) / std_
 
-    return x_train,y_train,x_test,y_test
+    return x_train, y_train, x_test, y_test
